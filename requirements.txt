@@ -1,2 +1,7 @@
 aiohttp
+asyncio-pool
 ipython
+matplotlib
+pandas
+pyyaml
+xlrd

@@ -1,6 +1,8 @@
-GLOBAL_PYTHON=python3.7
-PYTHON=./.venv/bin/python
-PYTEST=./.venv/bin/pytest
+export PYTHONPATH := proweather:$(PYTHONPATH)
+
+GLOBAL_PYTHON := python3.7
+PYTHON := .venv/bin/python
+PYTEST := .venv/bin/pytest
 
 .PHONY: all clean-cache prepare run
 
@@ -8,6 +10,9 @@ all: run
 
 clean-cache:
 	@find proweather -name "__pycache__" -type d -exec rm -rf {} +
+
+clean-data:
+	@rm -rf data
 
 prepare:
 	@$(GLOBAL_PYTHON) -m venv .venv
