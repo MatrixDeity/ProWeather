@@ -48,7 +48,8 @@ class Collector:
     def _aggregate_weathers(
             self, date: datetime.date, weather: utils.WeatherData):
         if date in self.weathers_by_dates:
-            self.weathers_by_dates[date].aggregate(weather)
+            old_weather = self.weathers_by_dates[date]
+            self.weathers_by_dates[date] = old_weather.aggregate(weather)
         else:
             self.weathers_by_dates[date] = weather
 

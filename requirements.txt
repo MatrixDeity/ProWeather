@@ -2,6 +2,8 @@ aiohttp
 asyncio-pool
 ipython
 matplotlib
+numpy
 pandas
 pyyaml
+tensorflow
 xlrd
