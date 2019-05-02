@@ -1,5 +1,7 @@
+import csv
 import datetime
 import pickle
+from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import NamedTuple
@@ -43,3 +45,27 @@ def load_weather_data(target: str) -> List[WeatherData]:
     with open(target, 'rb') as file:
         weather_data = pickle.load(file)
     return weather_data
+
+
+def dump_predictions(predictions: Dict[datetime.date, float], target: str):
+    with open(target, 'w') as file:
+        writer = csv.writer(file)
+        for date, temp in predictions.items():
+            writer.writerow((date, temp))
+
+
+def load_predictions(target: str) -> Dict[datetime.date, float]:
+    with open(target, 'r') as file:
+        reader = csv.reader(file)
+        predictions = {
+            row[0]: float(row[1]) for row in reader
+        }
+    return predictions
+
+
+def dates_between(
+        begin_date: datetime.date,
+        end_date: datetime.date = datetime.date.today()):
+    while begin_date < end_date:
+        yield begin_date
+        begin_date += datetime.timedelta(days=1)

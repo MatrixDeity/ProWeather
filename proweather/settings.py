@@ -10,7 +10,9 @@ class ConfigNotFound(FileNotFoundError):
 
 class Config:
     def __init__(self, path: Optional[str] = None):
-        config_path = path or os.path.join(os.getcwd(), 'config.yaml')
+        config_path = os.path.abspath(
+            path or os.path.join(os.getcwd(), 'config.yaml'),
+        )
         try:
             with open(config_path, 'r') as config_file:
                 config = yaml.load(config_file, Loader=yaml.Loader)

@@ -1,9 +1,12 @@
+import argparse
 import asyncio
+import datetime
 import os
 import sys
 
 import ml.supervisor as supervisor
 import settings
+import utils
 import web.collector as collector
 
 
@@ -12,8 +15,22 @@ class BadPythonVersion(EnvironmentError):
 
 
 class Application:
-    def __init__(self):
-        self.config = settings.Config()
+    def __init__(self, args):
+        self.config = settings.Config(args.config)
+        if '..' in args.dates:
+            date_begin, date_end = map(
+                lambda d: datetime.datetime.strptime(
+                    d.strip(), '%Y-%m-%d',
+                ).date(),
+                args.dates.split('..', 1),
+            )
+            self.prediction_dates = list(
+                utils.dates_between(date_begin, date_end),
+            )
+        else:
+            self.prediction_dates = [
+                datetime.datetime.strptime(args.dates.strip(), '%Y-%m-%d'),
+            ]
 
     def run(self):
         self._collect_weather_data()
@@ -31,14 +48,26 @@ class Application:
             supervisor.train_model_once(self.config)
 
     def _predict_weather(self):
-        supervisor.predict_weather_once(self.config)
+        supervisor.predict_weather_once(self.config, self.prediction_dates)
 
 
 def main():
     if sys.version_info < (3, 7):
         raise BadPythonVersion('ProWeather requires Python 3.7+')
 
-    Application().run()
+    args = _parse_args()
+    Application(args).run()
+
+
+def _parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-c', '--config', type=str, help='Path to config file',
+    )
+    parser.add_argument(
+        'dates', type=str, help='Interval of dates to weather predict',
+    )
+    return parser.parse_args()
 
 
 if __name__ == '__main__':

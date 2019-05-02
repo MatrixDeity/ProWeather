@@ -10,6 +10,24 @@ import utils
 START_ROW = 7
 
 
+def main():
+    args = _parse_args()
+    xls_path = os.path.abspath(args.target)
+    target_path = os.path.join(os.getcwd(), 'xls_weather.pkl')
+    book = xlrd.open_workbook(xls_path)
+    sheet = book.sheet_by_index(0)
+    rows_number = sheet.nrows
+
+    weather_data = []
+    i = START_ROW
+    while i < rows_number:
+        weather, diff = _process_all_dates(sheet, i)
+        weather_data.append(weather)
+        i += diff
+
+    utils.dump_weather_data(weather_data, target_path)
+
+
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('target', help='Path to xls file')
@@ -77,24 +95,6 @@ def _process_all_dates(sheet, idx):
         tot_precip=tot_precip,
         max_wind=max_wind,
     ), count
-
-
-def main():
-    args = _parse_args()
-    xls_path = os.path.abspath(args.target)
-    target_path = os.path.join(os.getcwd(), 'xls_weather.pkl')
-    book = xlrd.open_workbook(xls_path)
-    sheet = book.sheet_by_index(0)
-    rows_number = sheet.nrows
-
-    weather_data = []
-    i = START_ROW
-    while i < rows_number:
-        weather, diff = _process_all_dates(sheet, i)
-        weather_data.append(weather)
-        i += diff
-
-    utils.dump_weather_data(weather_data, target_path)
 
 
 if __name__ == '__main__':

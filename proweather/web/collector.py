@@ -39,7 +39,7 @@ class Collector:
             for client in self.clients:
                 if client.disabled:
                     continue
-                for date in _dates(self.start_date):
+                for date in utils.dates_between(self.start_date):
                     await pool.spawn(task(client, date))
 
     async def close_session(self):
@@ -64,11 +64,3 @@ async def grab_weather_once(config: settings.Config):
     async with Collector(config) as collector:
         await collector.collect_weather()
         collector.save_weather_data()
-
-
-def _dates(start_date: datetime.date):
-    date = start_date
-    end_date = datetime.date.today()
-    while date < end_date:
-        yield date
-        date += datetime.timedelta(days=1)

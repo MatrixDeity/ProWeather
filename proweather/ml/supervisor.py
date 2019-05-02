@@ -1,5 +1,7 @@
 import datetime
 import os
+from typing import Iterable
+from typing import List
 from typing import Optional
 from typing import Tuple
 
@@ -23,7 +25,8 @@ class Supervisor:
         self.index = 'date'
         self.train_iterations = config.train_iterations
         self.train_steps = config.train_steps
-        self.prediction_date = config.prediction_date
+        self.predictions_path = config.predictions_path
+        self.predictions = {}
 
     def train(self):
         self._read_weather_data()
@@ -31,16 +34,24 @@ class Supervisor:
         x, y = self._split_frame(train_frame, 'avg_temp')
         self._fit_model(x, y)
 
-    def predict(self):
+    def predict(self, prediction_dates: Iterable[datetime.datetime]):
         self._read_weather_data()
-        prediction_frame = self._make_prediction_frame()
+        prediction_frame = self._make_prediction_frame(prediction_dates)
         x, _ = self._split_frame(prediction_frame)
-        prediction = self._predict_one_day(x)
-        print(
-            'Weather for %s: %.0fC.' % (
-                self.prediction_date.strftime('%d.%m.%Y'), prediction[0],
-            ),
-        )
+        predictions = self._predict_all(x)
+        self.predictions = {
+            date: prediction
+            for date, prediction in zip(prediction_dates, predictions)
+        }
+        for date, prediction in self.predictions.items():
+            print(
+                'Temperature for %s: %.1f C.' % (
+                    date.strftime('%Y-%m-%d'), prediction,
+                )
+            )
+
+    def save_predictions(self):
+        utils.dump_predictions(self.predictions, self.predictions_path)
 
     def _read_weather_data(self):
         weather_data = utils.load_weather_data(self.data_path)
@@ -77,7 +88,7 @@ class Supervisor:
                 steps=self.train_steps,
             )
 
-    def _predict_one_day(self, x: pandas.DataFrame) -> Tuple[float]:
+    def _predict_all(self, x: pandas.DataFrame) -> List[float]:
         feature_cols = [
             tensorflow.feature_column.numeric_column(col) for col in x.columns
         ]
@@ -89,7 +100,9 @@ class Supervisor:
         prediction = regressor.predict(
             input_fn=_wx_input_fn(x, None, 1, False),
         )
-        return tuple(next(prediction)['predictions'])
+        return [
+            float('%.1f' % pred['predictions'][0]) for pred in prediction
+        ]
 
     def _derive_nth_year_feature(
             self, frame: pandas.DataFrame, feature: str,
@@ -111,10 +124,13 @@ class Supervisor:
         train_frame = self.weather_frame.copy()
         return self._prepare_data_frame(train_frame)
 
-    def _make_prediction_frame(self) -> pandas.DataFrame:
+    def _make_prediction_frame(
+            self, prediction_dates: Iterable[datetime.datetime],
+    ) -> pandas.DataFrame:
         prediction_frame = pandas.DataFrame(
             data=[
-                utils.WeatherData(self.prediction_date, 0, 0, 0, 0, 0, 0, 0),
+                utils.WeatherData(date, 0, 0, 0, 0, 0, 0, 0)
+                for date in prediction_dates
             ],
             columns=utils.WeatherData.get_fields(),
         ).set_index(self.index)
@@ -135,9 +151,12 @@ def train_model_once(config: settings.Config):
     supervisor.train()
 
 
-def predict_weather_once(config: settings.Config):
+def predict_weather_once(
+        config: settings.Config,
+        prediction_dates: Iterable[datetime.datetime]):
     supervisor = Supervisor(config)
-    supervisor.predict()
+    supervisor.predict(prediction_dates)
+    supervisor.save_predictions()
 
 
 def _wx_input_fn(x, y=None, num_epochs=None, shuffle=True, batch_size=1300):
